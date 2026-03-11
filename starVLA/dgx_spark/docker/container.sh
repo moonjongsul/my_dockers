@@ -1,106 +1,281 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-CONTAINER_NAME="starVLA"
-NODE_RANK="node1"   # node1 or node2
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_NAME="$(basename "$0")"
+
+DEFAULT_NODE_NAME="node1"
+COMMAND="${1:-help}"
+NODE_NAME="${2:-$DEFAULT_NODE_NAME}"
+
+SERVICE_BASE_NAME="starVLA"
+IMAGE_NAME_DEFAULT="moonjongsul/starvla-dgx-spark:nvcr.io-pytorch-25.12-py3"
+
+validate_node_name() {
+    case "${NODE_NAME}" in
+        node1|node2) ;;
+        *)
+            echo "[ERROR] Invalid node name: '${NODE_NAME}'" >&2
+            echo "        Allowed values: node1, node2" >&2
+            exit 1
+            ;;
+    esac
+}
+
+node_name_to_rank() {
+    case "${NODE_NAME}" in
+        node1) echo "0" ;;
+        node2) echo "1" ;;
+    esac
+}
+
+validate_node_name
+
+DIST_NODE_RANK="$(node_name_to_rank)"
+CONTAINER_NAME="${SERVICE_BASE_NAME}-${NODE_NAME}"
+IMAGE_NAME="${IMAGE_NAME_DEFAULT}"
+COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
 
 show_help() {
-    echo "Usage: $0 [command]"
-    echo ""
-    echo "Commands:"
-    echo "  help                    Show this help message"
-    echo "  create                  Create and start container (image → new container)"
-    echo "  start                   Start existing container (already created)"
-    echo "  enter                   Enter the running container"
-    echo "  stop                    Stop the container"
-    echo "  remove                  Stop and remove the container"
-    echo ""
-    echo "Examples:"
-    echo "  $0 create               Create and start container"
-    echo "  $0 start                Start existing container"
-    echo "  $0 enter                Enter the running container"
-    echo "  $0 stop                 Stop container"
-    echo "  $0 remove               Remove container"
+    cat <<EOF
+Usage:
+  ${SCRIPT_NAME} <command> [node_name]
+
+Commands:
+  help                  Show this help message
+  create                Create and start container
+  start                 Start existing container
+  enter                 Enter running container
+  stop                  Stop container
+  remove                Stop and remove container
+  purge                 Stop and remove container, networks, volumes
+  restart               Restart container
+  status                Show container status
+  logs                  Show recent logs
+  pull                  Pull latest image defined in compose file
+
+Arguments:
+  node_name             node1 or node2
+                        default: ${DEFAULT_NODE_NAME}
+
+Internal config:
+  container_name        ${CONTAINER_NAME}
+  image_name            ${IMAGE_NAME}
+
+Examples:
+  ${SCRIPT_NAME} create
+  ${SCRIPT_NAME} create node1
+  ${SCRIPT_NAME} create node2
+  ${SCRIPT_NAME} enter node1
+  ${SCRIPT_NAME} logs node2
+EOF
+}
+
+log() {
+    echo "[INFO] $*"
+}
+
+warn() {
+    echo "[WARN] $*" >&2
+}
+
+die() {
+    echo "[ERROR] $*" >&2
+    exit 1
+}
+
+require_docker() {
+    command -v docker >/dev/null 2>&1 || die "docker command not found"
+    docker info >/dev/null 2>&1 || die "docker daemon is not accessible. Check Docker service or permissions"
+    docker compose version >/dev/null 2>&1 || die "docker compose is not available"
+}
+
+require_compose_file() {
+    [[ -f "${COMPOSE_FILE}" ]] || die "Compose file not found: ${COMPOSE_FILE}"
+}
+
+compose_run() {
+    CONTAINER_NAME="${CONTAINER_NAME}" \
+    IMAGE_NAME="${IMAGE_NAME}" \
+    DIST_NODE_RANK="${DIST_NODE_RANK}" \
+    docker compose -f "${COMPOSE_FILE}" "$@"
 }
 
 is_container_running() {
-    docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"
+    docker ps --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"
 }
 
 is_container_exists() {
-    docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"
+    docker ps -a --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"
 }
 
 setup_x11() {
-    if [ -n "$DISPLAY" ]; then
-        echo "Setting up X11 forwarding..."
-        # xhost 제거 (SSH 환경에서 불필요)
+    if [[ -n "${DISPLAY:-}" ]]; then
+        log "Setting up X11 forwarding..."
         rm -f /tmp/.docker.xauth
         touch /tmp/.docker.xauth
-        xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f /tmp/.docker.xauth nmerge - 2>/dev/null || true
+        xauth nlist "${DISPLAY}" 2>/dev/null | sed -e 's/^..../ffff/' | xauth -f /tmp/.docker.xauth nmerge - 2>/dev/null || true
         chmod 777 /tmp/.docker.xauth
     else
-        echo "Warning: DISPLAY is not set. X11 forwarding will not be available."
+        warn "DISPLAY is not set. X11 forwarding will not be available."
     fi
+}
+
+enter_shell() {
+    docker exec -it "${CONTAINER_NAME}" bash 2>/dev/null || docker exec -it "${CONTAINER_NAME}" sh
+}
+
+pull_image() {
+    log "Pulling image '${IMAGE_NAME}'..."
+    compose_run pull
+    log "Pull completed."
 }
 
 create_container() {
+    if is_container_exists; then
+        die "Container '${CONTAINER_NAME}' already exists. Use '${SCRIPT_NAME} start ${NODE_NAME}' or '${SCRIPT_NAME} remove ${NODE_NAME}' first."
+    fi
+
     setup_x11
-    echo "Creating and starting ${CONTAINER_NAME} container..."
-    docker compose -f "${SCRIPT_DIR}/docker-compose.${NODE_RANK}.yml" up -d
+    log "Creating and starting container '${CONTAINER_NAME}' with image '${IMAGE_NAME}'..."
+    compose_run up -d
+    log "Container created and started."
 }
 
 start_container() {
-    if is_container_exists; then
-        setup_x11
-        echo "Starting existing ${CONTAINER_NAME} container..."
-        docker compose -f "${SCRIPT_DIR}/docker-compose.${NODE_RANK}.yml" start
-    else
-        echo "Error: Container does not exist. Run '$0 create' first."
-        exit 1
+    if ! is_container_exists; then
+        die "Container '${CONTAINER_NAME}' does not exist. Run '${SCRIPT_NAME} create ${NODE_NAME}' first."
     fi
+
+    if is_container_running; then
+        log "Container '${CONTAINER_NAME}' is already running."
+        return 0
+    fi
+
+    setup_x11
+    log "Starting container '${CONTAINER_NAME}'..."
+    compose_run start
+    log "Container started."
 }
 
 enter_container() {
-    setup_x11
-    if ! is_container_running; then
-        echo "Error: Container is not running"
-        exit 1
+    if ! is_container_exists; then
+        die "Container '${CONTAINER_NAME}' does not exist. Run '${SCRIPT_NAME} create ${NODE_NAME}' first."
     fi
-    docker exec -it "$CONTAINER_NAME" bash
+
+    if ! is_container_running; then
+        die "Container '${CONTAINER_NAME}' is not running. Run '${SCRIPT_NAME} start ${NODE_NAME}' first."
+    fi
+
+    setup_x11
+    log "Entering container '${CONTAINER_NAME}'..."
+    enter_shell
 }
 
 stop_container() {
-    if ! is_container_running; then
-        echo "Error: Container is not running"
-        exit 1
+    if ! is_container_exists; then
+        log "Container '${CONTAINER_NAME}' does not exist."
+        return 0
     fi
-    echo "Stopping ${CONTAINER_NAME} container..."
-    docker compose -f "${SCRIPT_DIR}/docker-compose.${NODE_RANK}.yml" stop
+
+    if ! is_container_running; then
+        log "Container '${CONTAINER_NAME}' is already stopped."
+        return 0
+    fi
+
+    log "Stopping container '${CONTAINER_NAME}'..."
+    compose_run stop
+    log "Container stopped."
 }
 
 remove_container() {
-    echo "Warning: This will stop and remove the container. All unsaved data will be lost."
-    read -p "Are you sure? [y/N] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker compose -f "${SCRIPT_DIR}/docker-compose.${NODE_RANK}.yml" down
-        echo "Container removed."
+    if ! is_container_exists; then
+        log "Container '${CONTAINER_NAME}' does not exist. Nothing to remove."
+        return 0
+    fi
+
+    warn "This will stop and remove container '${CONTAINER_NAME}'."
+    warn "Named volumes are preserved."
+    read -r -p "Type 'yes' to continue: " answer
+
+    if [[ "${answer}" == "yes" ]]; then
+        compose_run down
+        log "Container removed."
     else
-        echo "Operation cancelled."
-        exit 0
+        log "Operation cancelled."
     fi
 }
 
-case "$1" in
-    "help")     show_help ;;
-    "create")   create_container ;;
-    "start")    start_container ;;
-    "enter")    enter_container ;;
-    "stop")     stop_container ;;
-    "remove")   remove_container ;;
-    *)
-        [ -z "$1" ] && show_help || echo "Error: Unknown command '$1'" && show_help
-        exit 1
-        ;;
-esac
+purge_container() {
+    warn "This will stop and remove container '${CONTAINER_NAME}', related networks, and named volumes."
+    warn "This may permanently delete stored data."
+    read -r -p "Type 'purge' to continue: " answer
+
+    if [[ "${answer}" == "purge" ]]; then
+        compose_run down -v --remove-orphans
+        log "Container, related networks, and volumes removed."
+    else
+        log "Operation cancelled."
+    fi
+}
+
+restart_container() {
+    if ! is_container_exists; then
+        die "Container '${CONTAINER_NAME}' does not exist."
+    fi
+
+    setup_x11
+    log "Restarting container '${CONTAINER_NAME}'..."
+    compose_run restart
+    log "Container restarted."
+}
+
+status_container() {
+    if ! is_container_exists; then
+        log "Container '${CONTAINER_NAME}' does not exist."
+        return 0
+    fi
+
+    if is_container_running; then
+        log "Container '${CONTAINER_NAME}' is running."
+    else
+        log "Container '${CONTAINER_NAME}' exists but is stopped."
+    fi
+
+    docker ps -a --filter "name=^${CONTAINER_NAME}$"
+}
+
+logs_container() {
+    if ! is_container_exists; then
+        die "Container '${CONTAINER_NAME}' does not exist."
+    fi
+
+    compose_run logs --tail=200 -f
+}
+
+main() {
+    require_docker
+    require_compose_file
+
+    case "${COMMAND}" in
+        help)    show_help ;;
+        create)  create_container ;;
+        start)   start_container ;;
+        enter)   enter_container ;;
+        stop)    stop_container ;;
+        remove)  remove_container ;;
+        purge)   purge_container ;;
+        restart) restart_container ;;
+        status)  status_container ;;
+        logs)    logs_container ;;
+        pull)    pull_image ;;
+        *)
+            echo "[ERROR] Unknown command: '${COMMAND}'" >&2
+            echo
+            show_help
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

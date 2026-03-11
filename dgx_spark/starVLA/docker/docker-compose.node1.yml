@@ -22,6 +22,7 @@ services:
               count: all
               capabilities: [gpu]
     environment:
+      - TORCH_CUDA_ARCH_LIST=12.1
       - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility

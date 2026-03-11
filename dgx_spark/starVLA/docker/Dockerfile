@@ -24,7 +24,8 @@ ARG CACHEBUST=1
 # Workspace 생성 + starVLA clone + LIBERO clone
 RUN mkdir -p ${WORKSPACE} && \
     git clone https://github.com/moonjongsul/starVLA.git ${WORKSPACE}/starVLA && \
-    git clone https://github.com/moonjongsul/LIBERO.git ${WORKSPACE}/LIBERO
+    git clone https://github.com/moonjongsul/LIBERO.git ${WORKSPACE}/LIBERO && \
+    cd ${WORKSPACE}/LIBERO && git pull
 
 # starVLA requirements.txt 설치
 RUN cd ${WORKSPACE}/starVLA && pip install -r requirements.txt

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 1. 이미지 이름 및 태그 설정
-NGC_TORCH_VER="25.03"
+NGC_TORCH_VER="25.12"
 BUILD_IMAGE_NAME="moonjongsul/starvla-dgx-spark"
 TAG="nvcr.io-pytorch-${NGC_TORCH_VER}-py3"
 DOCKERFILE="docker/Dockerfile"

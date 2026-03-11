@@ -1,4 +1,4 @@
-ARG NGC_TORCH_VER=25.03
+ARG NGC_TORCH_VER=25.12
 
 FROM nvcr.io/nvidia/pytorch:${NGC_TORCH_VER}-py3
 

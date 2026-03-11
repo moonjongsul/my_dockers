@@ -18,10 +18,13 @@ RUN apt-get update && apt-get install -y \
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 RUN python -m pip install --upgrade pip wheel
 
+# 날짜나 임의 값으로 캐시 bust
+ARG CACHEBUST=1
+
 # Workspace 생성 + starVLA clone + LIBERO clone
-RUN mkdir -p ${WORKSPACE} && cd ${WORKSPACE} && \
-    git clone https://github.com/moonjongsul/starVLA.git && \
-    git clone https://github.com/moonjongsul/LIBERO.git
+RUN mkdir -p ${WORKSPACE} && \
+    git clone https://github.com/moonjongsul/starVLA.git ${WORKSPACE}/starVLA && \
+    git clone https://github.com/moonjongsul/LIBERO.git ${WORKSPACE}/LIBERO
 
 # starVLA requirements.txt 설치
 RUN cd ${WORKSPACE}/starVLA && pip install -r requirements.txt
@@ -44,12 +47,18 @@ RUN pip install robomimic==0.2.0 --no-deps && \
 RUN cd ${WORKSPACE}/LIBERO && pip install -e .
 
 # ---- 쉘 환경 설정 (bashrc 등록)
-RUN echo "alias eb='nano ~/.bashrc'" >> ~/.bashrc && \
+RUN echo "" >> ~/.bashrc && \
+    echo "alias eb='nano ~/.bashrc'" >> ~/.bashrc && \
     echo "alias sb='source ~/.bashrc'" >> ~/.bashrc && \
+    echo "alias cw='cd ~/workspace'" >> ~/.bashrc && \
+    echo "" >> ~/.bashrc && \
     echo "alias pv='pip index versions'" >> ~/.bashrc && \
     echo "alias pi='pip install'" >> ~/.bashrc && \
+    echo "" >> ~/.bashrc && \
     echo "alias pl='ps -ef | grep python'" >> ~/.bashrc && \
     echo "alias kl='kill -9'" >> ~/.bashrc
+
+RUN rm -rf ~/.cursor-server
 
 # 환경변수 기본값 (compose에서 override 가능)
 ENV PYTHONUNBUFFERED=1 \

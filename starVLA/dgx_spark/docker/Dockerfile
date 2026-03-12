@@ -49,6 +49,8 @@ RUN cd ${WORKSPACE}/LIBERO && pip install -e .
 
 # ---- 쉘 환경 설정 (bashrc 등록)
 RUN echo "" >> ~/.bashrc && \
+    echo "export LS_COLORS='di=1;97;42:ow=1;97;42:tw=1;97;42'" >> ~/.bashrc && \
+    echo "" >> ~/.bashrc && \
     echo "alias eb='nano ~/.bashrc'" >> ~/.bashrc && \
     echo "alias sb='source ~/.bashrc'" >> ~/.bashrc && \
     echo "alias cw='cd ~/workspace'" >> ~/.bashrc && \

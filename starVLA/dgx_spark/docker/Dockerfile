@@ -21,7 +21,8 @@ RUN python -m pip install --upgrade pip wheel
 # Workspace 생성 + starVLA clone + LIBERO clone
 RUN mkdir -p ${WORKSPACE} && \
     git clone https://github.com/moonjongsul/starVLA.git ${WORKSPACE}/starVLA && \
-    git clone https://github.com/moonjongsul/LIBERO.git ${WORKSPACE}/LIBERO
+    git clone https://github.com/moonjongsul/LIBERO.git ${WORKSPACE}/LIBERO && \
+    git clone https://github.com/moonjongsul/my_dockers.git ${WORKSPACE}/my_dockers
 
 # starVLA requirements.txt 설치
 RUN cd ${WORKSPACE}/starVLA && pip install -r requirements.txt
@@ -56,7 +57,14 @@ RUN echo "" >> ~/.bashrc && \
     echo "alias pi='pip install'" >> ~/.bashrc && \
     echo "" >> ~/.bashrc && \
     echo "alias pl='ps -ef | grep python'" >> ~/.bashrc && \
-    echo "alias kl='kill -9'" >> ~/.bashrc
+    echo "alias kl='kill -9'" >> ~/.bashrc && \
+    echo "" >> ~/.bashrc && \
+    echo "export NODE_NUM=1" >> ~/.bashrc && \
+    echo "alias dc='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh create node${NODE_NUM}'" >> ~/.bashrc && \
+    echo "alias ds='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh start node${NODE_NUM}'" >> ~/.bashrc && \
+    echo "alias de='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh enter node${NODE_NUM}'" >> ~/.bashrc && \
+    echo "alias dt='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh stop node${NODE_NUM}'" >> ~/.bashrc && \
+    echo "alias dm='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh remove node${NODE_NUM}'" >> ~/.bashrc && 
 
 RUN rm -rf ~/.cursor-server
 

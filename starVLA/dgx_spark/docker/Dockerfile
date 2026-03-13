@@ -4,7 +4,7 @@ FROM nvcr.io/nvidia/pytorch:${NGC_TORCH_VER}-py3
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Seoul
-ENV WORKSPACE=/workspace
+ENV WORKSPACE=/workspace_src
 
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-dev python3-venv \
@@ -18,14 +18,10 @@ RUN apt-get update && apt-get install -y \
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 RUN python -m pip install --upgrade pip wheel
 
-# 날짜나 임의 값으로 캐시 bust
-ARG CACHEBUST=1
-
 # Workspace 생성 + starVLA clone + LIBERO clone
 RUN mkdir -p ${WORKSPACE} && \
     git clone https://github.com/moonjongsul/starVLA.git ${WORKSPACE}/starVLA && \
-    git clone https://github.com/moonjongsul/LIBERO.git ${WORKSPACE}/LIBERO && \
-    cd ${WORKSPACE}/LIBERO && git pull
+    git clone https://github.com/moonjongsul/LIBERO.git ${WORKSPACE}/LIBERO
 
 # starVLA requirements.txt 설치
 RUN cd ${WORKSPACE}/starVLA && pip install -r requirements.txt
@@ -49,11 +45,12 @@ RUN cd ${WORKSPACE}/LIBERO && pip install -e .
 
 # ---- 쉘 환경 설정 (bashrc 등록)
 RUN echo "" >> ~/.bashrc && \
+    echo "export PS1='\[\e[1;31m\][docker]\[\e[0m\] \[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ '" >> ~/.bashrc && \
     echo "export LS_COLORS='di=1;97;42:ow=1;97;42:tw=1;97;42'" >> ~/.bashrc && \
     echo "" >> ~/.bashrc && \
     echo "alias eb='nano ~/.bashrc'" >> ~/.bashrc && \
     echo "alias sb='source ~/.bashrc'" >> ~/.bashrc && \
-    echo "alias cw='cd ~/workspace'" >> ~/.bashrc && \
+    echo "alias cw='cd /workspace'" >> ~/.bashrc && \
     echo "" >> ~/.bashrc && \
     echo "alias pv='pip index versions'" >> ~/.bashrc && \
     echo "alias pi='pip install'" >> ~/.bashrc && \
@@ -69,5 +66,5 @@ ENV PYTHONUNBUFFERED=1 \
     HF_HOME=/root/.cache/huggingface \
     CUDA_HOME=/usr/local/cuda
 
-WORKDIR ${WORKSPACE}
+WORKDIR /workspace
 CMD ["/bin/bash"]

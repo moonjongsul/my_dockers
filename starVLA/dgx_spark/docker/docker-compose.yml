@@ -49,8 +49,8 @@ services:
 
     volumes:
       - /mnt/synology/RobotData:/mnt/synology
-      - ${HOME}/sync_workspace/my_dockers:/workspace/my_dockers:rw
-      - ${HOME}/sync_workspace/starVLA:/workspace/starVLA:rw
+      - ${HOME}/workspace/my_dockers:/workspace/my_dockers:rw
+      - ${HOME}/workspace/starVLA:/workspace/starVLA:rw
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ${HOME}/.cache/huggingface:/root/.cache/huggingface:rw

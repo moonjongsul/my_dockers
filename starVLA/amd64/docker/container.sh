@@ -145,6 +145,7 @@ create_container() {
     log "Creating and starting container '${CONTAINER_NAME}' with image '${IMAGE_NAME}'..."
     compose_run up -d
     log "Container created and started."
+    enter_shell
 }
 
 start_container() {
@@ -161,6 +162,7 @@ start_container() {
     log "Starting container '${CONTAINER_NAME}'..."
     compose_run start
     log "Container started."
+    enter_shell
 }
 
 enter_container() {

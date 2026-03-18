@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 RUN python -m pip install --upgrade pip wheel
 
+# 빌드 캐시 무효화 -> 이 밑으로 모든 코드 새로 실행
+ARG CACHE_BUST=$(date +%s)
+
 # Workspace 생성 + starVLA clone + LIBERO clone
 RUN mkdir -p ${WORKSPACE} && \
     git clone https://github.com/moonjongsul/starVLA.git ${WORKSPACE}/starVLA && \
@@ -41,7 +44,7 @@ RUN mkdir -p ${WORKSPACE}/starVLA/playground/Pretrained_models && \
 RUN cd ${WORKSPACE}/LIBERO && pip install -r requirements.txt
 # robomimic 설치 (egl_probe 제외)
 RUN pip install robomimic==0.2.0 --no-deps && \
-    pip install $(pip show robomimic | grep Requires | sed 's/Requires: //' | tr ',' '\n' | grep -v egl_probe | tr '\n' ' ')
+    pip install $(pip show robomimic | grep Requires | sed 's/Requires: //' | tr ',' '\n' | grep -v egl_probe |tr '\n' ' ') 
 RUN cd ${WORKSPACE}/LIBERO && pip install -e .
 
 # ---- 쉘 환경 설정 (bashrc 등록)
@@ -58,13 +61,7 @@ RUN echo "" >> ~/.bashrc && \
     echo "" >> ~/.bashrc && \
     echo "alias pl='ps -ef | grep python'" >> ~/.bashrc && \
     echo "alias kl='kill -9'" >> ~/.bashrc && \
-    echo "" >> ~/.bashrc && \
-    echo "export NODE_NUM=1" >> ~/.bashrc && \
-    echo "alias dc='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh create node${NODE_NUM}'" >> ~/.bashrc && \
-    echo "alias ds='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh start node${NODE_NUM}'" >> ~/.bashrc && \
-    echo "alias de='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh enter node${NODE_NUM}'" >> ~/.bashrc && \
-    echo "alias dt='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh stop node${NODE_NUM}'" >> ~/.bashrc && \
-    echo "alias dm='cd && ~/workspace/my_dockers/starVLA/dgx_spark/docker/container.sh remove node${NODE_NUM}'" >> ~/.bashrc && 
+    echo "" >> ~/.bashrc
 
 RUN rm -rf ~/.cursor-server
 

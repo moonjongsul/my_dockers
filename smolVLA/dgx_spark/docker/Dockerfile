@@ -21,31 +21,28 @@ RUN python -m pip install --upgrade pip wheel
 # 빌드 캐시 무효화 -> 이 밑으로 모든 코드 새로 실행
 ARG CACHE_BUST=$(date +%s)
 
-RUN pip uninstall cmake -y
-
-# Workspace 생성 + lerobot clone + LIBERO clone
+# Workspace 생성 + lerobot clone
 RUN mkdir -p ${WORKSPACE} && \
     git clone https://github.com/moonjongsul/lerobot.git ${WORKSPACE}/lerobot
-    # git clone https://github.com/moonjongsul/LIBERO.git ${WORKSPACE}/LIBERO
 
 # lerobot requirements.txt 설치
-RUN cd ${WORKSPACE}/lerobot && pip install -e . && \
-    pip install -e ".[smolvla]" && \
-    pip install -e ".[libero]"
-RUN pip install --no-cache-dir ffmpeg
+RUN cd ${WORKSPACE}/lerobot && \
+    pip install -e . && \
+    pip install -e ".[smolvla]"
+
+RUN pip uninstall cmake -y
+RUN cd ${WORKSPACE}/lerobot && pip install -e ".[libero]"
+
+RUN pip install --no-cache-dir ffmpeg torchcodec
 # flash-attn 대신 wheel로 설치
 RUN pip install --no-cache-dir \
     flash-attn \
     --find-links https://github.com/Dao-AILab/flash-attention/releases \
     --no-build-isolation
 
-# LIBERO requirements.txt 설치
-# RUN cd ${WORKSPACE}/LIBERO && pip install -r requirements.txt
 # robomimic 설치 (egl_probe 제외)
 RUN pip install robomimic==0.2.0 --no-deps && \
     pip install $(pip show robomimic | grep Requires | sed 's/Requires: //' | tr ',' '\n' | grep -v egl_probe |tr '\n' ' ') 
-# RUN cd ${WORKSPACE}/LIBERO && pip install -e .
-
 
 # ---- 쉘 환경 설정 (bashrc 등록)
 RUN echo "" >> ~/.bashrc && \

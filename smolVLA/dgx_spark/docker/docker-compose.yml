@@ -50,7 +50,6 @@ services:
     volumes:
       - /mnt/synology/RobotData:/mnt/synology
       - ${HOME}/workspace/lerobot:/workspace/lerobot:rw
-      # - ${HOME}/workspace/LIBERO:/workspace/LIBERO:rw
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ${HOME}/.cache/huggingface:/root/.cache/huggingface:rw

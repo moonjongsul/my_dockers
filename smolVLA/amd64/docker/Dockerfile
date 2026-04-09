@@ -6,6 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Seoul
 ENV WORKSPACE=/workspace
 
+# 빌드 캐시 무효화 -> 이 밑으로 모든 코드 새로 실행
+ARG CACHE_BUST=$(date +%s)
+
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-dev python3-venv \
     git git-lfs curl net-tools ffmpeg gedit nano tmux ca-certificates \

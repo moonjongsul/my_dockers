@@ -6,6 +6,10 @@ BUILD_IMAGE_NAME="moonjongsul/smolvla-dgx-spark"
 TAG="nvcr.io-pytorch-${NGC_TORCH_VER}-py3"
 DOCKERFILE="docker/Dockerfile"
 
+USERNAME=$(whoami)
+USER_UID=$(id -u)
+USER_GID=$(id -g)
+
 echo "=========================================="
 echo "🚀 Docker Build 시작: ${BUILD_IMAGE_NAME}:${TAG}"
 echo "파일 경로: ${DOCKERFILE}"

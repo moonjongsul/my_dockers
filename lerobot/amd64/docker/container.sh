@@ -8,8 +8,8 @@ DEFAULT_NODE_NAME="node1"
 COMMAND="${1:-help}"
 NODE_NAME="${2:-$DEFAULT_NODE_NAME}"
 
-SERVICE_BASE_NAME="smolVLA"
-IMAGE_NAME_DEFAULT="moonjongsul/smolvla-dgx-spark:nvcr.io-pytorch-25.12-py3"
+SERVICE_BASE_NAME="lerobot"
+IMAGE_NAME_DEFAULT="moonjongsul/lerobot-dgx-spark:nvcr.io-pytorch-25.12-py3"
 
 validate_node_name() {
     case "${NODE_NAME}" in

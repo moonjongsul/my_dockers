@@ -1,5 +1,5 @@
 services:
-  smolvla:
+  lerobot:
     container_name: ${CONTAINER_NAME}
     image: ${IMAGE_NAME}
     stdin_open: true
@@ -26,7 +26,6 @@ services:
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - TORCH_CUDA_ARCH_LIST=12.1
-      - XAUTHORITY=/tmp/.docker.xauth
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - DISPLAY=${DISPLAY}
@@ -34,24 +33,16 @@ services:
       - HF_HOME=/root/.cache/huggingface
       - PYTHONUNBUFFERED=1
       - TOKENIZERS_PARALLELISM=false
-      - MASTER_ADDR=192.168.200.12
-      - MASTER_PORT=29500
-      - NODE_RANK=${DIST_NODE_RANK}
-      - NNODES=2
-      - NCCL_SOCKET_IFNAME=enp1s0f1np1
-      - NCCL_IB_DISABLE=0
-      - NCCL_NET_GDR_LEVEL=5
-      - NCCL_DEBUG=INFO
-      - UCX_NET_DEVICES=enp1s0f1np1
-      - OMPI_MCA_btl_tcp_if_include=enp1s0f1np1
+      - MASTER_ADDR=127.0.0.1
       - CUDA_HOME=/usr/local/cuda
       - TORCH_NCCL_ASYNC_ERROR_HANDLING=1
 
     volumes:
-      - /mnt/synology/RobotData:/mnt/synology
-      - ${HOME}/workspace/lerobot:/workspace/lerobot:rw
+      # - /mnt/synology/RobotData:/mnt/synology
+      # - ${HOME}/workspace/lerobot:/workspace/lerobot:rw
+      - ${HOME}/datasets:/workspace/datasets:rw
+      - /media:/media:rw
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - /tmp/.docker.xauth:/tmp/.docker.xauth:rw
       - ${HOME}/.cache/huggingface:/root/.cache/huggingface:rw
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro

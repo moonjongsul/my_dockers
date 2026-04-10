@@ -2,9 +2,13 @@
 
 # 1. 이미지 이름 및 태그 설정
 NGC_TORCH_VER="25.12"
-BUILD_IMAGE_NAME="moonjongsul/smolvla-dgx-spark"
+BUILD_IMAGE_NAME="moonjongsul/lerobot-dgx-spark"
 TAG="nvcr.io-pytorch-${NGC_TORCH_VER}-py3"
 DOCKERFILE="docker/Dockerfile"
+
+USERNAME=$(whoami)
+USER_UID=$(id -u)
+USER_GID=$(id -g)
 
 echo "=========================================="
 echo "🚀 Docker Build 시작: ${BUILD_IMAGE_NAME}:${TAG}"
@@ -19,6 +23,7 @@ START_TIME=$(date +%s)
 DOCKER_BUILDKIT=1 docker build \
   -f "${DOCKERFILE}" \
   -t "${BUILD_IMAGE_NAME}:${TAG}" \
+  --build-arg CACHE_BUST=$(date +%s) \
   --build-arg NGC_TORCH_VER=${NGC_TORCH_VER} \
   .
 
